@@ -1,32 +1,19 @@
-/**
- *
- * Solution to homework task
- * Data Structures Course
- * Faculty of Mathematics and Informatics of Sofia University
- * Winter semester 2016/2017
- *
- * @author Hristina Petkova
- * @idnumber
- * @task 0
- * @compiler GCC
- *
- */
-
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <bitset>
+#include <vector>
+#include <algorithm>
 
 #include "Tree.h"
-#include "Vector.h"
 #include "Frequency.h"
 #include "Code.h"
 
 using namespace std;
 
-bool updateExistingNode(Vector<Tree<Frequency>>* allCharsVec, char tempChar);
-void writeKeys(Vector<Code>* codedCharsVec, ofstream* archive);
-void writeArchive(std::string fileContent, ofstream* archive);
+bool updateExistingNode(std::vector<Tree<Frequency>>* allCharsVec, char tempChar);
+void writeKeys(std::vector<Code>* codedCharsVec, ofstream* archive);
+void writeArchive(std::string* fileContent, ofstream* archive);
 void createArchive(std::string nameOfFile, ofstream* archive);
 
 int main()
@@ -36,16 +23,15 @@ int main()
     //create archive file
     ofstream archive("rar.bin", ios::binary);
 
-    for(size_t i = 0; i < 3;/**number of all files*/ i++)
-    {
+    ///for(size_t i = 0; i < 1;/**number of all files*/ i++)
+    ///{
         createArchive(nameOfFile, &archive);
-    }
+    ///}
 
     archive.close();
 
     cout << "Archive is create" << endl;
 
-	system("pause");
     return 0;
 }
 
@@ -70,7 +56,6 @@ void createArchive(std::string nameOfFile, ofstream* archive)
 
     // create buffer with size of file
     char* buffer = new char [textSize];
-
     // copy file to buffer
     text.read(buffer, textSize);
 
@@ -78,7 +63,7 @@ void createArchive(std::string nameOfFile, ofstream* archive)
     text.close();
 
     // vector with all chars every node is a root of own tree
-    Vector<Tree<Frequency>> allCharsVec;
+    std::vector<Tree<Frequency>> allCharsVec;
 
     // iterate buffer and count char repetition
     for(size_t i = 0; i < textSize; i++)
@@ -95,82 +80,89 @@ void createArchive(std::string nameOfFile, ofstream* archive)
         // if find new char add it to vector
         Tree<Frequency> tempTree;
         tempTree.insertNode(Frequency(1, tempChar));
-        allCharsVec.push(tempTree);
+        allCharsVec.push_back(tempTree);
     }
     //-----------------------------------------
 
     // sort vector
-    allCharsVec.sortList();
+    std::sort(allCharsVec.begin(), allCharsVec.end(), [](const Tree<Frequency>& lhs, const Tree<Frequency>& rhs)
+              {
+                  return lhs > rhs;
+              });
 
+    /// print for test
+/**    for(auto const& node : allCharsVec)
+    {
+        cout << "node = " << node << endl;
+    }
+*/
     // create one tree with all elements
-    while(allCharsVec.getVectorSize() > 1)
+    while(allCharsVec.size() > 1)
     {
         Tree<Frequency> leftChild;
         Tree<Frequency> rightChild;
         Tree<Frequency> newTree;
 
 		//get last element from vector
-        allCharsVec.pop(leftChild);
+        leftChild = allCharsVec.back();
+        allCharsVec.pop_back();
 
 		//get last element from vector
-        allCharsVec.pop(rightChild);
+        rightChild = allCharsVec.back();
+        allCharsVec.pop_back();
 
         newTree.createRootFromTrees(leftChild, rightChild);
 
-        allCharsVec.push(newTree);
-        allCharsVec.sortList();
+        allCharsVec.push_back(newTree);
+
+        std::sort(allCharsVec.begin(), allCharsVec.end(), [](const Tree<Frequency>& lhs, const Tree<Frequency>& rhs)
+              {
+                  return lhs > rhs;
+              });
+
     }
     //-----------------------------------------
     // get tree
     Tree<Frequency> finalTree;
-    allCharsVec.pop(finalTree);
+    finalTree = allCharsVec.back();
+    allCharsVec.pop_back();
 
     cout << "coding... ";
     // contains all chars with them binary code
-    Vector<Code> codedCharsVec;
+    std::vector<Code> codedCharsVec;
 	std::string s;
     finalTree.getAllElements(&codedCharsVec,s);
 
     writeKeys(&codedCharsVec, archive);
 
     // contains full text in coded variant
-    std::string codedText;
+    std::string codedText = "";
 
     for(size_t i = 0; i < textSize; i++)
     {
         // get char one by one
         char tempChar = *(buffer + i);
-        // iterator for codedCharsVec
-        ListNode<Code>* itr = codedCharsVec.getIterator();
 
-        while(itr != 0)
+        for (auto const& codeForCurrentChar : codedCharsVec)
         {
-            Code codeForCurrentChar = itr->getData();
             if(tempChar == codeForCurrentChar.getChar() )
             {
                 codedText.append(codeForCurrentChar.getBits());
-
-                itr = 0;
-            }
-            else
-            {
-                itr = itr->getNextPtr();
+                break;
             }
         }
     }
 
-    writeArchive(codedText, archive);
+    writeArchive(&codedText, archive);
 
     delete[] buffer;
 }
 
-bool updateExistingNode(Vector<Tree<Frequency>>* allCharsVec, char tempChar)
+bool updateExistingNode(std::vector<Tree<Frequency>>* allCharsVec, char tempChar)
 {
-    ListNode<Tree<Frequency> >* itr = allCharsVec->getIteratorVector();
-    while(itr != 0)
+    for(auto const& vectorElement : *allCharsVec)
     {
-        // get pointer to data in root in every element of vector
-        Frequency* currentNode = itr->getDataPointer()->getRootPtr()->getDataPointer();
+        Frequency* currentNode = vectorElement.getRootPtr()->getDataPointer();
 
         if(currentNode->getSeries() == tempChar)
         {
@@ -178,32 +170,28 @@ bool updateExistingNode(Vector<Tree<Frequency>>* allCharsVec, char tempChar)
             currentNode->setValue(newValue);
             return true;
         }
-        itr = itr->getNextPtr();
     }
+
     return false;
 }
 
-void writeKeys(Vector<Code>* codedCharsVec, ofstream* archive)
+void writeKeys(std::vector<Code>* codedCharsVec, ofstream* archive)
 {
     cout << "writing code... ";
-    //iterator for vector whit all object for word and them binary code
-    ListNode<Code>* itr = codedCharsVec->getIterator();
 
     // get size of vector, it's number of all coded chars
-    uint64_t numberOfAllCodedChar = codedCharsVec->getVectorSize();
+    uint64_t numberOfAllCodedChar = codedCharsVec->size();
 
     // store number in begin of the file
     // when read archive this number tell us how many objects we must to read
     archive->write((char*)&numberOfAllCodedChar, sizeof(numberOfAllCodedChar));
 
-    while(itr != 0)
+    for(auto const& codeForWrite : *codedCharsVec)
     {
-        // object of coded char
-        Code* codeForWrite = itr->getDataPointer();
         // char
-        char charFromCode = codeForWrite->getChar();
+        char charFromCode = codeForWrite.getChar();
         // binary code
-        string bitsFromCode = codeForWrite->getBits();
+        string bitsFromCode = codeForWrite.getBits();
         // length of binary code
         size_t sizeOfbits = bitsFromCode.size();
 
@@ -212,37 +200,38 @@ void writeKeys(Vector<Code>* codedCharsVec, ofstream* archive)
         // write length of binary code
         archive->write((char*)&sizeOfbits, sizeof(sizeOfbits));
         // write binary code
-        archive->write(bitsFromCode.c_str(), sizeof(codeForWrite->getBits() ));
-
-        // go to next node
-        itr = itr->getNextPtr();
+        archive->write(bitsFromCode.c_str(), sizeof(codeForWrite.getBits() ));
     }
 }
 
-void writeArchive(std::string fileContent, ofstream* archive)
+void writeArchive(std::string* fileContent, ofstream* archive)
 {
     cout << "writing content... " << endl;
-    size_t fileContentSize = fileContent.size();
+    size_t fileContentSize = fileContent->size();
 
+    // write size of all file
     archive->write((char*)&fileContentSize, sizeof(fileContentSize));
 
-    Vector<bitset<100>> bitVector;
+    std::vector<bitset<100>> bitVector;
 
     // store bits from string to bitset
     // get it by piece for 100 bits
     for(size_t i = 0; i < fileContentSize; i+=100)
     {
-        std::string subString = fileContent.substr (i, i+100);
+        std::string subString = fileContent->substr (i, i+100);
         bitset<100> tempSet (subString);
-        bitVector.push(tempSet);
+        bitVector.push_back(tempSet);
     }
 
     // write bits to file
-    uint64_t bitVectorSize = bitVector.getVectorSize();
+    uint64_t bitVectorSize = bitVector.size();
     for(size_t i = 0; i < bitVectorSize; i++)
     {
         bitset<100> temp;
-        bitVector.pop(temp);
+
+        temp = bitVector.back();
+        bitVector.pop_back();
+
         archive->write((char*)&temp, sizeof(temp));
     }
 }
