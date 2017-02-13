@@ -1,6 +1,7 @@
 #ifndef TREE_H_INCLUDED
 #define TREE_H_INCLUDED
 
+#include <vector>
 #include <iostream>
 #include <string>
 using std::cout;
@@ -8,7 +9,6 @@ using std::endl;
 
 #include "Treenode.h"
 #include "Code.h"
-#include "Vector.h"
 
 template< typename NODETYPE >
 std::ostream& operator<< (std::ostream& out, const Tree<NODETYPE>& tree);
@@ -37,10 +37,10 @@ public:
     bool operator< (Tree tree) const;
     bool operator> (Tree tree) const;
 
-    TreeNode< NODETYPE >* getRootPtr();
+    TreeNode< NODETYPE >* getRootPtr() const;
 
-    void getAllElements(Vector<Code>* codedChars,std::string);
-    void getAllElementsHelper(Vector<Code>* codedChars, TreeNode< NODETYPE >* ptr,std::string);
+    void getAllElements(std::vector<Code>* codedChars,std::string);
+    void getAllElementsHelper(std::vector<Code>* codedChars, TreeNode< NODETYPE >* ptr,std::string);
 
     friend std::ostream& operator<< <> (std::ostream& out, const Tree<NODETYPE>& tree);
     void inOrderTraversalAndPrint(std::ostream& out, const Tree<NODETYPE>& tree) const;
@@ -64,7 +64,7 @@ Tree< NODETYPE >::Tree()
 }
 
 template< typename NODETYPE >
-TreeNode< NODETYPE >* Tree< NODETYPE >::getRootPtr()
+TreeNode< NODETYPE >* Tree< NODETYPE >::getRootPtr() const
 {
     return rootPtr;
 }
@@ -97,8 +97,6 @@ void Tree< NODETYPE >::insertNodeHelper(TreeNode< NODETYPE > **ptr, const NODETY
                 insertNodeHelper( &( ( *ptr )->rightPtr ), value );
             }
             //else duplicate data value ignored
-
-
         }
 
     }
@@ -225,17 +223,23 @@ bool Tree< NODETYPE >::operator< (Tree tree) const
     return this->rootPtr->getData() < tree.rootPtr->getData();
 }
 
+template< typename NODETYPE >
+bool Tree< NODETYPE >::operator> (Tree tree) const
+{
+    return this->rootPtr->getData() > tree.rootPtr->getData();
+}
+
 //===============================================================================================================================================
 
 //make vector from tree
 template< typename NODETYPE >
-void Tree< NODETYPE >::getAllElements(Vector<Code>* codedChars,std::string s)
+void Tree< NODETYPE >::getAllElements(std::vector<Code>* codedChars,std::string s)
 {
    getAllElementsHelper(codedChars, rootPtr,s);
 }
 
 template< typename NODETYPE >
-void Tree< NODETYPE >::getAllElementsHelper(Vector<Code>* codedChars, TreeNode< NODETYPE >* ptr, std::string s)
+void Tree< NODETYPE >::getAllElementsHelper(std::vector<Code>* codedChars, TreeNode< NODETYPE >* ptr, std::string s)
 {
     Code tempCode;
     if ( ptr != 0 )
@@ -247,7 +251,7 @@ void Tree< NODETYPE >::getAllElementsHelper(Vector<Code>* codedChars, TreeNode< 
             ///cout << "ptr->data.getSeries(): " << ptr->data.getSeries()<<" ==== mysStr: "<< s << endl;
             tempCode.setChar(ptr->data.getSeries());
             tempCode.setBits(s);
-            codedChars->push(tempCode);
+            codedChars->push_back(tempCode);
         }
 
         getAllElementsHelper(codedChars, ptr->rightPtr, s+'1' ); // traverse right subtree
