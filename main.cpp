@@ -16,6 +16,7 @@
 #include <fstream>
 #include <string>
 #include <bitset>
+#include <vector>
 
 #include "Tree.h"
 #include "Vector.h"
